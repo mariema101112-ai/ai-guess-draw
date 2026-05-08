@@ -127,7 +127,7 @@ async function aiGo(){
 
     const isCorrect = matchedWord === curWord;
     let txt = `AI识别：${matchedWord || '没认出来'}\n`;
-    txt += isCorrect ? '✅ 猜对啦！画得很像' : '❌ 没猜对，再练练～';
+    txt += isCorrect ? '✅ ' : '❌ ';
     document.getElementById('res').innerText = txt;
 
   } catch (err) {
@@ -135,7 +135,7 @@ async function aiGo(){
       const isCorrect = Math.random() > 0.3;
       const matchedWord = isCorrect ? curWord : words[Math.floor(Math.random() * words.length)];
       let txt = `AI识别：${matchedWord}\n`;
-      txt += isCorrect ? '✅ 猜对啦！画得很像' : '❌ 没猜对，再练练～';
+      txt += isCorrect ? '✅ ' : '❌ ';
       document.getElementById('res').innerText = txt;
     }, 1000);
   }
