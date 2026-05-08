@@ -1,6 +1,6 @@
 export default async function handler(req) {
   if (req.method !== 'POST') {
-    return new Response('Method Not Allowed', { status: 405 });
+    return new Response(JSON.stringify({ error: 'Method Not Allowed' }), { status: 405 });
   }
 
   const body = await req.json();
@@ -34,6 +34,9 @@ export default async function handler(req) {
     similar: randomSimilar,
     correct: correctFlag
   }), {
-    headers: { 'Content-Type': 'application/json' }
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*'
+    }
   });
 }
