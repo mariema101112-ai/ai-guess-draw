@@ -3,186 +3,163 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
-<title>AI你画我猜</title>
+<title>免注册真AI你画我猜</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;touch-action:none;user-select:none;}
-body{background:#f5f7fa;padding:10px;}
-.box{max-width:500px;margin:0 auto;background:#fff;border-radius:16px;padding:15px;}
-h2{text-align:center;margin-bottom:10px;color:#333;}
+body{background:#f5f7fa;padding:10px;font-family:"Microsoft YaHei",Arial;}
+.box{max-width:500px;margin:0 auto;background:#fff;border-radius:16px;padding:15px;box-shadow:0 2px 8px rgba(0,0,0,0.1);}
+h2{text-align:center;margin-bottom:15px;color:#333;font-size:24px;}
 .topic{font-size:22px;text-align:center;color:#e64340;font-weight:bold;margin:10px 0;}
 #canvas{width:100%;aspect-ratio:1/1;border:2px solid #333;border-radius:12px;background:#fff;}
 .btns{display:flex;gap:8px;margin:15px 0;}
-.btn{flex:1;padding:14px 0;border:none;border-radius:10px;font-size:16px;color:#fff;}
+.btn{flex:1;padding:14px 0;border:none;border-radius:10px;font-size:16px;color:#fff;cursor:pointer;}
 .btn1{background:#f44336;}
 .btn2{background:#2196F3;}
 .btn3{background:#4CAF50;}
-.res{padding:15px;background:#f0f7ff;border-radius:12px;text-align:center;font-size:17px;line-height:1.6;}
+.res{padding:15px;background:#f0f7ff;border-radius:12px;text-align:center;font-size:17px;line-height:1.8;color:#333;}
 </style>
 </head>
 <body>
 <div class="box">
-  <h2>🎨 AI你画我猜</h2>
+  <h2>🎨 免注册真AI你画我猜</h2>
   <div class="topic">题目：<span id="tt">加载中</span></div>
   <canvas id="cv"></canvas>
   <div class="btns">
     <button class="btn btn1" onclick="clearCv()">清空</button>
-    <button class="btn btn2" onclick="aiGo()">AI识别</button>
-    <button class="btn btn3" onclick="nextOne()">下一题</button>
+    <button class="btn btn2" onclick="aiGuess()">AI识别</button>
+    <button class="btn btn3" onclick="nextTopic()">下一题</button>
   </div>
-  <div class="res" id="res">准备就绪</div>
+  <div class="res" id="result">准备就绪，开始画画吧～</div>
 </div>
 
 <script>
-// 题库+中英文映射（扩大匹配范围，提升识别成功率）
-const wordMap = {
-  "床":["bed","furniture"], "沙发":["sofa","couch","furniture"], 
-  "桌子":["table","desk","furniture"], "椅子":["chair","stool","furniture"], 
-  "衣柜":["wardrobe","cabinet","furniture"], "牙刷":["toothbrush","brush"], 
-  "手机":["phone","mobile","smartphone"], "剪刀":["scissors","cut"], 
-  "雨伞":["umbrella","rain"], "眼镜":["glasses","eyewear"],
-  "钟表":["clock","watch","time"], "书包":["backpack","bag"], 
-  "篮球":["basketball","ball","sport"], "行李箱":["suitcase","luggage"], 
-  "帽子":["hat","cap"], "水杯":["cup","glass","drink"], 
-  "钥匙":["key"], "台灯":["lamp","light"], 
-  "棉签":["cotton swab","swab"], "保温杯":["thermos","bottle"],
-  "充电宝":["power bank","charger"], "订书机":["stapler"], 
-  "自拍杆":["selfie stick","stick"], "眼罩":["eye mask","mask"],
-  "卷发棒":["curling iron","iron"], "体重秤":["scale","weight"], 
-  "刀":["knife"], "衣架":["hanger"],
-  "鼠标":["mouse","computer"], "毛巾":["towel","cloth"], 
-  "碗":["bowl"], "勺子":["spoon"], 
-  "梳子":["comb"], "铅笔":["pencil","pen"], 
-  "尺子":["ruler","rule"], "橡皮擦":["eraser","rubber"]
-};
-const words = Object.keys(wordMap);
+// 题库（和QuickDraw类别匹配）
+const topics = [
+  "飞机","苹果","香蕉","篮球","自行车","鸟","书","杯子","汽车","椅子",
+  "时钟","衣服","电脑","杯子","鱼","眼镜","花","房子","钥匙","叶子",
+  "摩托车","鼠标","笔","铅笔","电话","枕头","披萨","兔子","彩虹","船",
+  "鞋子","沙发","星星","桌子","电视","树","雨伞","瓶子"
+];
 
-const cv = document.getElementById('cv');
-const ctx = cv.getContext('2d');
-let curWord = '';
-let drawFlag = false;
+let currentTopic = "";
+let isDrawing = false;
+const canvas = document.getElementById("cv");
+const ctx = canvas.getContext("2d");
 
-// 适配画布
-function resizeCv(){
-  const w = cv.clientWidth;
-  cv.width=w;
-  cv.height=w;
-  ctx.lineWidth=7;
-  ctx.lineCap='round';
-  ctx.lineJoin='round';
+// 画布初始化
+function initCanvas() {
+  const w = canvas.parentElement.clientWidth - 30;
+  canvas.width = w;
+  canvas.height = w;
+  ctx.lineWidth = 8;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
-window.onload=resizeCv;
-window.onresize=resizeCv;
 
 // 随机出题
-function nextOne(){
-  curWord=words[Math.floor(Math.random()*words.length)];
-  document.getElementById('tt').innerText=curWord;
-  document.getElementById('res').innerText='开始画画吧';
+function nextTopic() {
+  currentTopic = topics[Math.floor(Math.random() * topics.length)];
+  document.getElementById("tt").innerText = currentTopic;
+  document.getElementById("result").innerText = "准备就绪，开始画画吧～";
   clearCv();
 }
 
-// 画画逻辑
-cv.addEventListener('touchstart',start);
-cv.addEventListener('touchmove',move);
-cv.addEventListener('touchend',end);
-function start(e){
-  e.preventDefault();
-  drawFlag=true;
-  const r=cv.getBoundingClientRect();
-  const x=e.touches[0].clientX - r.left;
-  const y=e.touches[0].clientY - r.top;
-  ctx.beginPath();
-  ctx.moveTo(x,y);
+// 清空画布
+function clearCv() {
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
-function move(e){
-  if(!drawFlag)return;
+
+// 绘图事件
+canvas.addEventListener("mousedown", startDraw);
+canvas.addEventListener("mousemove", draw);
+canvas.addEventListener("mouseup", stopDraw);
+canvas.addEventListener("mouseleave", stopDraw);
+canvas.addEventListener("touchstart", startDraw);
+canvas.addEventListener("touchmove", draw);
+canvas.addEventListener("touchend", stopDraw);
+
+function startDraw(e) {
   e.preventDefault();
-  const r=cv.getBoundingClientRect();
-  const x=e.touches[0].clientX - r.left;
-  const y=e.touches[0].clientY - r.top;
-  ctx.lineTo(x,y);
+  isDrawing = true;
+  const pos = getPosition(e);
+  ctx.beginPath();
+  ctx.moveTo(pos.x, pos.y);
+}
+
+function draw(e) {
+  if (!isDrawing) return;
+  e.preventDefault();
+  const pos = getPosition(e);
+  ctx.lineTo(pos.x, pos.y);
   ctx.stroke();
 }
-function end(){drawFlag=false;}
-function clearCv(){ctx.clearRect(0,0,cv.width,cv.height);}
 
-// 稳定版AI识别逻辑（扩大匹配+弱兜底）
-async function aiGo(){
-  document.getElementById('res').innerText='AI正在认真识图...';
-  const base64 = cv.toDataURL('image/png').split(',')[1];
+function stopDraw() {
+  isDrawing = false;
+}
 
-  // 方案1：优先调用真AI
+function getPosition(e) {
+  const rect = canvas.getBoundingClientRect();
+  let x, y;
+  if (e.touches) {
+    x = e.touches[0].clientX - rect.left;
+    y = e.touches[0].clientY - rect.top;
+  } else {
+    x = e.clientX - rect.left;
+    y = e.clientY - rect.top;
+  }
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  return { x: x * scaleX, y: y * scaleY };
+}
+
+// ✅ 核心：免注册真AI（QuickDraw公共接口）
+async function aiGuess() {
+  const canvasData = canvas.toDataURL("image/png");
+  if (canvasData.length < 10000) {
+    document.getElementById("result").innerText = "😜 还没画画呢，先画几笔吧～";
+    return;
+  }
+
+  document.getElementById("result").innerText = "AI正在识别涂鸦...";
+
   try {
-    // 换更稳定的跨域代理
-    const response = await fetch('https://proxy.cors.sh/https://api.imagga.com/v2/tags', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Basic YWNjX2FkOWM2YjY0M2Q4YjRhZTphOWE0MjFkY2E3YjFhY2QzNjI3ODBlY2JhNjVhZjdi',
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'x-cors-api-key': 'temp_6f4921f05f80988e090819c00483e780' // 临时跨域密钥
-      },
-      body: `image_base64=${base64}`,
-      timeout: 10000
+    // 转为base64（不带前缀）
+    const base64 = canvasData.split(",")[1];
+
+    // 调用公共QuickDraw识别接口（免注册、免密钥）
+    const res = await fetch("https://quickdraw-api.vercel.app/api/recognize", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image: base64 })
     });
 
-    if (!response.ok) throw new Error('AI接口响应失败');
-    const data = await response.json();
-    const tags = data.result.tags
-      .filter(tag => tag.confidence > 10) // 降低置信度门槛，提升识别率
-      .map(tag => tag.tag.en.toLowerCase());
+    const data = await res.json();
+    const topGuess = data.guesses?.[0]?.label || "未知";
+    const confidence = (data.guesses?.[0]?.confidence * 100).toFixed(1) || 0;
 
-    console.log('AI识别标签：', tags);
+    // 匹配题库
+    const isCorrect = topGuess === currentTopic;
+    let resultText = `AI识别：${topGuess}（${confidence}%）\n`;
+    resultText += isCorrect ? "✅ 猜对啦！" : "❌ 没猜对～";
 
-    // 扩大匹配范围：只要AI标签包含题库词的任一关联词，就算匹配
-    let matchedWord = null;
-    let maxMatch = 0;
-    for (const [cnWord, enWords] of Object.entries(wordMap)) {
-      const matchCount = tags.filter(tag => enWords.some(ew => tag.includes(ew))).length;
-      if (matchCount > maxMatch) {
-        maxMatch = matchCount;
-        matchedWord = cnWord;
-      }
-    }
-
-    // 生成结果
-    let txt = '';
-    if (matchedWord) {
-      const isCorrect = matchedWord === curWord;
-      txt = `AI识别：${matchedWord}\n`;
-      txt += isCorrect ? '✅ ' : '❌ ';
-    } else {
-      txt = ' AI没认出来你画的是什么～';
-    }
-    document.getElementById('res').innerText = txt;
+    document.getElementById("result").innerText = resultText;
 
   } catch (err) {
-    console.error('真AI识别失败：', err);
-    // 方案2：弱兜底（只匹配“物品类型”，不随机）
-    const shapeTags = ['circle','square','rectangle','line','curve','round'];
-    const drawTags = cv.toDataURL().length > 10000 ? shapeTags : []; // 判断是否画了东西
-    
-    let matchedWord = null;
-    if (drawTags.length > 0) {
-      // 按物品形状匹配（比如长方形→手机/桌子，圆形→篮球/杯子）
-      const shapeMap = {
-        "rectangle":["手机","桌子","书本"],
-        "circle":["篮球","杯子","碗"],
-        "line":["尺子","铅笔","剪刀"]
-      };
-      const randomShape = shapeMap[drawTags[0]] || ["钥匙","梳子","牙刷"];
-      matchedWord = randomShape[Math.floor(Math.random()*randomShape.length)];
-    }
-
-    if (matchedWord) {
-      const isCorrect = matchedWord === curWord;
-      document.getElementById('res').innerText = `AI识别：${matchedWord}\n` + (isCorrect ? '✅' : '❌ ');
-    } else {
-      document.getElementById('res').innerText = ' AI没认出来你画的是什么～';
-    }
+    console.error(err);
+    document.getElementById("result").innerText = "⚠️ AI识别失败，请稍后再试";
   }
 }
 
-nextOne();
+// 初始化
+window.onload = function () {
+  initCanvas();
+  nextTopic();
+};
+window.onresize = initCanvas;
 </script>
 </body>
 </html>
