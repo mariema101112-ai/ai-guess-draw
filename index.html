@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -40,39 +41,81 @@ let curWord = '';
 let drawFlag = false;
 
 // 适配平板画布
-function resizeCv(){const w = cv.clientWidth;cv.width=w;cv.height=w;ctx.lineWidth=7;ctx.lineCap='round';ctx.lineJoin='round';}
-window.onload=resizeCv;window.onresize=resizeCv;
+function resizeCv(){
+  const w = cv.clientWidth;
+  cv.width=w;
+  cv.height=w;
+  ctx.lineWidth=7;
+  ctx.lineCap='round';
+  ctx.lineJoin='round';
+}
+window.onload=resizeCv;
+window.onresize=resizeCv;
 
 // 随机出题
-function nextOne(){curWord=words[Math.floor(Math.random()*words.length)];document.getElementById('tt').innerText=curWord;document.getElementById('res').innerText='开始画画吧';clearCv();}
+function nextOne(){
+  curWord=words[Math.floor(Math.random()*words.length)];
+  document.getElementById('tt').innerText=curWord;
+  document.getElementById('res').innerText='开始画画吧';
+  clearCv();
+}
 
 // 触摸画画
 cv.addEventListener('touchstart',start);
 cv.addEventListener('touchmove',move);
 cv.addEventListener('touchend',end);
-function start(e){e.preventDefault();drawFlag=true;const r=cv.getBoundingClientRect();const x=e.touches[0].clientX-r.left;const y=e.touches[0].clientY-r.top;ctx.beginPath();ctx.moveTo(x,y);}
-function move(e){if(!drawFlag)return;e.preventDefault();const r=cv.getBoundingClientRect();const x=e.touches[0].clientX-r.left;const y=e.touches[0].clientY-r.top;ctx.lineTo(x,y);ctx.stroke();}
-function end(){drawFlag=false;}
-function clearCv(){ctx.clearRect(0,0,cv.width,cv.height);}
+
+function start(e){
+  e.preventDefault();
+  drawFlag=true;
+  const r=cv.getBoundingClientRect();
+  const x=e.touches[0].clientX - r.left;
+  const y=e.touches[0].clientY - r.top;
+  ctx.beginPath();
+  ctx.moveTo(x,y);
+}
+
+function move(e){
+  if(!drawFlag)return;
+  e.preventDefault();
+  const r=cv.getBoundingClientRect();
+  const x=e.touches[0].clientX - r.left;
+  const y=e.touches[0].clientY - r.top;
+  ctx.lineTo(x,y);
+  ctx.stroke();
+}
+
+function end(){
+  drawFlag=false;
+}
+
+function clearCv(){
+  ctx.clearRect(0,0,cv.width,cv.height);
+}
 
 // 对接Vercel后端
 async function aiGo(){
   document.getElementById('res').innerText='AI正在认真识图...';
   const base64 = cv.toDataURL('image/png');
   try{
-    const d = await fetch('/api/recognize',{
+    const response = await fetch('/api/recognize',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({image:base64,target:curWord})
     });
-    const res = await d.json();
+
+    if (!response.ok) throw new Error('请求失败');
+    const res = await response.json();
+
     let txt = `AI识别：${res.guess}\n相似度：${res.similar}分\n`;
     txt += res.correct ? '✅ 猜对啦！画得很像' : '❌ 没猜对，再练练～';
     document.getElementById('res').innerText = txt;
   }catch(err){
-    document.getElementById('res').innerText='识别失败，稍后再试';
+    console.error(err);
+    document.getElementById('res').innerText='识别失败，请重试';
   }
 }
+
 nextOne();
 </script>
 </body>
